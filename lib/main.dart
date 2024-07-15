@@ -12,17 +12,19 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final newTextTheme = Theme.of(context).textTheme.apply(
-      bodyColor: Colors.white,
-      displayColor: Colors.white,
-    );
+          bodyColor: Colors.white,
+          displayColor: Colors.white,
+        );
 
     return MaterialApp(
       title: 'Save Your Lyrics',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple, ),
-        useMaterial3: true,
-        textTheme: newTextTheme,
-      ),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+          ),
+          useMaterial3: true,
+          textTheme: newTextTheme,
+          scaffoldBackgroundColor: Colors.grey.shade900),
       home: HomePage(),
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'savedpage.dart';
+import 'searchpage.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -14,24 +16,16 @@ class _HomePageState extends State<HomePage> {
     Widget page;
     switch (selectedIndex) {
       case 0:
-        page = Placeholder();
+        page = SavedPage();
         break;
       case 1:
-        page = Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Text('hello'),
-            Text('holle'),
-            Text('hoehleo'),
-          ]
-        );
+        page = SearchPage();
         break;
       default:
         throw UnimplementedError('no widget for $selectedIndex');
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade900,
       body: page,
       bottomNavigationBar: Container(
         color: Colors.black,
