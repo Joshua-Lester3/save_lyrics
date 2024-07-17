@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'song.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -19,6 +22,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 25.0, left: 15.0, right: 15.0),
@@ -38,8 +42,15 @@ class _SearchPageState extends State<SearchPage> {
         FutureBuilder<List<Song>>(
             future: futureSearchResults,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
+              if (snapshot.connectionState == ConnectionState.done &&
+                  snapshot.hasData) {
                 var results = snapshot.data!;
+                if (results.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text('Search for songs to save the lyrics.'),
+                  );
+                }
                 return Expanded(
                   child: ListView(children: [
                     Padding(
@@ -61,8 +72,10 @@ class _SearchPageState extends State<SearchPage> {
                           ],
                         ),
                         trailing: ElevatedButton(
-                          onPressed: () {
-                            print('pressed!');
+                          onPressed: () async {
+                            File f = await _localFile(song.id!);
+                            String json = jsonEncode(song);
+                            f.writeAsString(json);
                           },
                           style: TextButton.styleFrom(
                             backgroundColor: theme.primaryColor,
@@ -74,12 +87,15 @@ class _SearchPageState extends State<SearchPage> {
                   ]),
                 );
               } else if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
+                return Padding(
+                  padding: const EdgeInsets.all(15.0),
+                  child: CircularProgressIndicator(),
+                );
               } else if (snapshot.hasError) {
                 return Center(child: Text('${snapshot.error}'));
+              } else {
+                return Center(child: Text('Search for lyrics'));
               }
-
-              return const CircularProgressIndicator();
             })
       ],
     );
@@ -99,8 +115,8 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<List<Song>> fetchSearchResults() async {
-    final response = await http.get(
-        Uri.parse('https://lrclib.net/api/search?q="${text}"'));
+    final response =
+        await http.get(Uri.parse('https://lrclib.net/api/search?q="${text}"'));
     if (response.statusCode == 200) {
       Iterable list = jsonDecode(response.body);
       List<Song> result = [];
@@ -124,50 +140,26 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
-class Song {
-  final int? id;
-  final String? trackName;
-  final String? artistName;
-  final String? albumName;
-  final double? duration;
-  final bool? instrumental;
-  final String? plainLyrics;
-  final String? syncedLyrics;
+Future<String> get _localPath async {
+  final directory = await getApplicationDocumentsDirectory();
 
-  const Song({
-    this.id,
-    this.trackName,
-    this.artistName,
-    this.albumName,
-    this.duration,
-    this.instrumental,
-    this.plainLyrics,
-    this.syncedLyrics,
-  });
+  return '${directory.path + Platform.pathSeparator}lyrics';
+}
 
-  factory Song.fromJson(Map<String, dynamic> json) {
-    return switch (json) {
-      {
-        'id': int id,
-        'trackName': String trackName,
-        'artistName': String artistName,
-        'albumName': String albumName,
-        'duration': double duration,
-        'instrumental': bool instrumental,
-        'plainLyrics': String plainLyrics,
-        'syncedLyrics': String syncedLyrics,
-      } =>
-        Song(
-          id: id,
-          trackName: trackName,
-          artistName: artistName,
-          albumName: albumName,
-          duration: duration,
-          instrumental: instrumental,
-          plainLyrics: plainLyrics,
-          syncedLyrics: syncedLyrics,
-        ),
-      _ => throw const FormatException('Failed to construct song.'),
-    };
+Future<File> _localFile(int id) async {
+  final path = await _localPath;
+  var dir = Directory(path);
+
+  try {
+    var dirList = dir.list();
+    await for (final FileSystemEntity f in dirList) {
+      if (f is File &&
+          f.path.endsWith('${Platform.pathSeparator + id.toString()}.txt')) {
+        return f;
+      }
+    }
+  } catch (e) {
+    print(e.toString());
   }
+  return File('$path/$id.txt');
 }
